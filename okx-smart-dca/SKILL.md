@@ -16,6 +16,10 @@ Volatility-aware dollar cost averaging. Uses OKX onchain market data to calculat
 
 > Read `../okx-agentic-wallet/_shared/preflight.md`. If that file does not exist, read `_shared/preflight.md` instead.
 
+## Chain Support
+
+> Read `../okx-agentic-wallet/_shared/chain-support.md` for the full list of supported chain names and chainIndex values. If that file does not exist, read `_shared/chain-support.md` instead.
+
 ## Skill Routing
 
 | Need | Skill/Tool |
