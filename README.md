@@ -1,6 +1,6 @@
 # XLayer Skills Arena
 
-A suite of **12 agentic DeFi skills** built on OKX Onchain OS. Each skill is a standalone Claude agent that understands natural language, fetches live onchain data, analyzes it, and executes — combining OKX onchainos CLI, Uniswap AI skills, OKX DEX Signal, DexScreener, and DeFi Llama into complete end-to-end workflows.
+A suite of **13 agentic DeFi skills** built on OKX Onchain OS. Each skill is a standalone Claude agent that understands natural language, fetches live onchain data, analyzes it, and executes — combining OKX onchainos CLI, Uniswap AI skills, OKX DEX Signal, DexScreener, and DeFi Llama into complete end-to-end workflows.
 
 Built for the OKX Onchain OS Hackathon — targeting **Best Skills Arena**, **Best Data Analyst**, and **Best Uniswap Integration** tracks.
 
@@ -40,6 +40,7 @@ chmod +x install.sh && ./install.sh
 | [`okx-smart-dca`](#okx-smart-dca) | RSI-adjusted DCA with automated scheduling | Most Innovative |
 | [`okx-risk-guard`](#okx-risk-guard) | Stop-loss / take-profit with auto-swap execution | Most Innovative |
 | [`okx-meme-scout`](#okx-meme-scout) | pump.fun scanner — filters 800+ launches to safe buys via dev + bundle checks | Most Innovative |
+| [`okx-v4-rebalancer`](#okx-v4-rebalancer) | Atomic burn→swap→mint in one tx using V4 flash accounting — 3× cheaper than V3 | **Uniswap Prize** |
 
 ---
 
@@ -123,6 +124,9 @@ Every skill follows the same 6-step pattern:
 | `v4-security-foundations` | uniswap-strategy, lp-position-manager | Hook permission matrix — blocks CRITICAL flags |
 | `swap-planner` | lp-position-manager | Finds best multi-hop swap route for rebalancing |
 | `swap-integration` | lp-position-manager | Splits large swaps across pools to reduce price impact |
+| `viem-integration` | v4-rebalancer | Construct V4 PoolManager unlock calldata + atomic multicall actions |
+| `configurator` | v4-rebalancer | Pool key construction, tick spacing, dynamic fee flag detection |
+| `deployer` | v4-rebalancer | Optional rebalancer hook deployment on V4 |
 
 ---
 
@@ -602,6 +606,73 @@ Step 4 — On trigger
 
 ---
 
+### okx-v4-rebalancer
+
+Atomic Liquidity Management for Uniswap V4. Executes a complete burn → swap → mint rebalance in **one single transaction** using V4 PoolManager flash accounting — 3× cheaper than V3-style rebalancing, zero price exposure between steps.
+
+**Trigger prompts:**
+```
+"rebalance my V4 LP atomically"
+"my Uniswap V4 position is out of range"
+"atomic burn and remint my V4 liquidity"
+"single tx LP rebalance on Base"
+"rebalance my ETH/USDC V4 position"
+```
+
+**Why V4 atomic is better than V3:**
+```
+V3-style (3 transactions):          V4 atomic (1 transaction):
+  Tx1: burn position                  PoolManager.unlock() → {
+  ↓ price can move                      burn liquidity
+  Tx2: swap tokens                      swap to new ratio     } atomic
+  ↓ price can move                      mint new range
+  Tx3: mint new range                   settle (flash accounting)
+                                      }
+  3× gas, 3× failure points          1× gas, full revert or full success
+  Gas (Base): ~$0.24                  Gas (Base): ~$0.08
+```
+
+**What happens step by step:**
+```
+Step 1 — Check position
+  onchainos market price → ETH: $2,510
+  Old range: $1,750–$2,400 → ⚠️ OUT OF RANGE, earning $0 fees
+
+Step 2 — New range from OKX 30d data
+  onchainos market kline --bar 1D --limit 30
+  weekly_vol = 7.4% → new range: $2,200–$2,850
+  tick_lower: 204,120  |  tick_upper: 209,400
+
+Step 3 — Swap route (swap-planner)
+  Need: sell 0.03 ETH → 61.80 USDC to hit new ratio
+  Route: direct V4 0.30% pool | impact: 0.06% ✅
+
+Step 4 — Hook security (v4-security-foundations)
+  Pool hook = address(0) → ✅ standard pool, safe to mint
+
+Step 5 — Build atomic calldata (viem-integration + configurator)
+  poolKey = { currency0: WETH, currency1: USDC, fee: 3000, tickSpacing: 60 }
+  Actions: [DECREASE_LIQUIDITY, COLLECT, SWAP_EXACT_IN, MINT_POSITION, SETTLE_ALL]
+  → encoded as PositionManager multicall
+
+Step 6 — Execute single tx
+  onchainos wallet contract-call --calldata <atomic_encoded> --gas-limit 500000
+  ✅ Tx: 0xabc...def
+
+  BURNED:   Position #1234 (old range $1,750–$2,400)
+  SWAPPED:  0.03 ETH → 61.80 USDC (inside PoolManager, flash accounting)
+  MINTED:   Position #1235 (new range $2,200–$2,850 ✅)
+  GAS:      418,243 units ($0.079) — 3× cheaper than V3 approach
+
+Step 7 — CronCreate 2h monitor on new range
+```
+
+**Uniswap AI skills used:** `swap-planner` + `v4-security-foundations` + `viem-integration` + `configurator` + `deployer` — most comprehensive Uniswap V4 integration in the suite.
+
+**Chains:** Ethereum (1), Base (8453), Arbitrum (42161), Unichain (1301)
+
+---
+
 ### okx-meme-scout
 
 Scans pump.fun and Solana launchpads every 30 minutes, filters hundreds of new launches down to safe buys using dev reputation, bundle detection, bonding curve analysis, and holder checks — then executes via Solana wallet.
@@ -797,6 +868,8 @@ xlayer-skills-arena/
 ├── okx-yield-compounder/        ← Auto-compound DeFi rewards
 │   └── SKILL.md
 ├── okx-meme-scout/              ← pump.fun scanner + rug filter + Solana buy
+│   └── SKILL.md
+├── okx-v4-rebalancer/           ← Atomic V4 burn→swap→mint (flash accounting)
 │   └── SKILL.md
 │
 ├── okx-agentic-wallet/          ← OKX wallet base skill
