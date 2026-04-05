@@ -1,6 +1,6 @@
 # XLayer Skills Arena
 
-A suite of **11 agentic DeFi skills** built on OKX Onchain OS. Each skill is a standalone Claude agent that understands natural language, fetches live onchain data, analyzes it, and executes — combining OKX onchainos CLI, Uniswap AI skills, OKX DEX Signal, DexScreener, and DeFi Llama into complete end-to-end workflows.
+A suite of **12 agentic DeFi skills** built on OKX Onchain OS. Each skill is a standalone Claude agent that understands natural language, fetches live onchain data, analyzes it, and executes — combining OKX onchainos CLI, Uniswap AI skills, OKX DEX Signal, DexScreener, and DeFi Llama into complete end-to-end workflows.
 
 Built for the OKX Onchain OS Hackathon — targeting **Best Skills Arena**, **Best Data Analyst**, and **Best Uniswap Integration** tracks.
 
@@ -21,6 +21,7 @@ Built for the OKX Onchain OS Hackathon — targeting **Best Skills Arena**, **Be
 | [`okx-copy-trader`](#okx-copy-trader) | Mirror smart money / whale / KOL trades automatically | Most Innovative |
 | [`okx-smart-dca`](#okx-smart-dca) | RSI-adjusted DCA with automated scheduling | Most Innovative |
 | [`okx-risk-guard`](#okx-risk-guard) | Stop-loss / take-profit with auto-swap execution | Most Innovative |
+| [`okx-meme-scout`](#okx-meme-scout) | pump.fun scanner — filters 800+ launches to safe buys via dev + bundle checks | Most Innovative |
 
 ---
 
@@ -89,6 +90,12 @@ Every skill follows the same 6-step pattern:
 | `tracker activities` | copy-trader, token-screener |
 | `leaderboard list` | copy-trader, token-screener |
 | `leaderboard supported-chains` | copy-trader, token-screener |
+| `memepump tokens` | meme-scout |
+| `memepump token-dev-info` | meme-scout |
+| `memepump token-bundle-info` | meme-scout |
+| `memepump token-details` | meme-scout |
+| `memepump aped-wallet` | meme-scout |
+| `memepump chains` | meme-scout |
 
 ## Uniswap AI Skills Usage
 
@@ -577,6 +584,75 @@ Step 4 — On trigger
 
 ---
 
+### okx-meme-scout
+
+Scans pump.fun and Solana launchpads every 30 minutes, filters hundreds of new launches down to safe buys using dev reputation, bundle detection, bonding curve analysis, and holder checks — then executes via Solana wallet.
+
+**Trigger prompts:**
+```
+"scan pump.fun for new meme coins"
+"find safe meme launches today"
+"has this dev rugged before? 0xabc..."
+"are there snipers in this token"
+"find clean launches on Solana"
+"auto-scan memes, alert me on score 85+"
+"buy $20 of DOGCAT"
+```
+
+**What happens step by step:**
+```
+Step 1 — Scan all new launches
+  onchainos memepump tokens --chain solana --stage NEW,MIGRATING
+  → Returns 847 new launches in last 2 hours
+
+Step 2 — Filter pipeline (runs per token, stops early on fail)
+
+  Bonding curve: skip < 5% (no momentum) and > 90% (too late)
+  → Sweet spot: 20–70%
+
+  Dev check:
+  onchainos memepump token-dev-info --token-address <addr>
+  → rugCount > 0? ❌ BLOCKED immediately
+
+  Bundle check:
+  onchainos memepump token-bundle-info --token-address <addr>
+  → bundleHoldingPct > 20%? ❌ BLOCKED (insiders hold too much)
+
+  Holder check:
+  onchainos memepump token-details --token-address <addr>
+  → holderCount < 30? ❌ SKIP (dead launch)
+
+  Security:
+  onchainos security token-detection --chain 501
+  → honeypot? ❌ BLOCKED
+
+Step 3 — Score remaining tokens (0–100)
+  curve sweet spot  → up to 40 pts
+  clean dev         → up to 30 pts
+  no bundles        → up to 20 pts
+  holders           → up to 10 pts
+
+Step 4 — Show ranked results
+  ┌──────────────────────────────────────────────────────────────┐
+  │ Scanned: 847 tokens  |  Passed: 3  |  Blocked: 844          │
+  │                                                              │
+  │ #1 DOGCAT  Curve 52%  0 rugs  No bundles  312 holders  94 🔥│
+  │ #2 SOLAPE  Curve 38%  0 rugs  1 small     89 holders   81 ✅│
+  │ #3 MOONCAT Curve 61%  0 rugs  No bundles  47 holders   76 ✅│
+  └──────────────────────────────────────────────────────────────┘
+
+Step 5 — User says "buy $20 of DOGCAT"
+  onchainos swap execute --from SOL --to <DOGCAT> --chain solana --gas-level fast
+  ✅ Bought 1,624,107 DOGCAT for 0.12 SOL | Tx: <hash>
+
+Step 6 — Optional: CronCreate auto-scout every 30 min
+  → alerts on score 85+ tokens automatically
+```
+
+**No API keys needed** — all through `onchainos` CLI. Requires Solana wallet in OKX agentic wallet for buy step.
+
+---
+
 ## Skill Composition — Full DeFi Lifecycle
 
 ```
@@ -702,6 +778,8 @@ xlayer-skills-arena/
 │   └── SKILL.md
 ├── okx-yield-compounder/        ← Auto-compound DeFi rewards
 │   └── SKILL.md
+├── okx-meme-scout/              ← pump.fun scanner + rug filter + Solana buy
+│   └── SKILL.md
 │
 ├── okx-agentic-wallet/          ← OKX wallet base skill
 │   └── _shared/
@@ -710,8 +788,9 @@ xlayer-skills-arena/
 ├── okx-dex-swap/                ← Swap primitives
 ├── okx-dex-market/              ← Market data primitives
 ├── okx-dex-signal/              ← Smart money signals + leaderboard
+├── okx-dex-trenches/            ← pump.fun / meme launchpad data
 ├── okx-security/                ← Token security scanning
-└── [+ 7 more OKX base skills]
+└── [+ 6 more OKX base skills]
 ```
 
 ---
