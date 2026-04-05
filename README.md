@@ -6,6 +6,24 @@ Built for the OKX Onchain OS Hackathon — targeting **Best Skills Arena**, **Be
 
 ---
 
+## Quick Start
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/Nith567/xlayer-skills-arena.git
+cd xlayer-skills-arena
+
+# 2. Install all skills (copies to ~/.claude/skills/)
+chmod +x install.sh && ./install.sh
+
+# 3. Open Claude Code and start using
+```
+
+> `onchainos` CLI is auto-installed on first run via the shared preflight check.
+> You need an OKX Agentic Wallet set up for execution. [Get started →](https://web3.okx.com/onchain-os)
+
+---
+
 ## Skills Overview
 
 | Skill | One-liner | Prize Target |
