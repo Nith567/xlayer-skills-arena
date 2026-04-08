@@ -1,6 +1,6 @@
 # XLayer Skills Arena
 
-A suite of **13 agentic DeFi skills** built on OKX Onchain OS. Each skill is a standalone Claude agent that understands natural language, fetches live onchain data, analyzes it, and executes — combining OKX onchainos CLI, Uniswap AI skills, OKX DEX Signal, DexScreener, and DeFi Llama into complete end-to-end workflows.
+A suite of **14 agentic DeFi skills** built on OKX Onchain OS. Each skill is a standalone Claude agent that understands natural language, fetches live onchain data, analyzes it, and executes — combining OKX onchainos CLI, Uniswap AI skills, OKX DEX Signal, DexScreener, and DeFi Llama into complete end-to-end workflows.
 
 Built for the OKX Onchain OS Hackathon — targeting **Best Skills Arena**, **Best Data Analyst**, and **Best Uniswap Integration** tracks.
 
@@ -41,6 +41,7 @@ chmod +x install.sh && ./install.sh
 | [`okx-risk-guard`](#okx-risk-guard) | Stop-loss / take-profit with auto-swap execution | Most Innovative |
 | [`okx-meme-scout`](#okx-meme-scout) | pump.fun scanner — filters 800+ launches to safe buys via dev + bundle checks | Most Innovative |
 | [`okx-v4-rebalancer`](#okx-v4-rebalancer) | Atomic burn→swap→mint in one tx using V4 flash accounting — 3× cheaper than V3 | **Uniswap Prize** |
+| [`okx-crosschain-swap`](#okx-crosschain-swap) | Bridge any token across 30+ chains via LI.FI — quote, execute, track status | Skills Arena |
 
 ---
 
@@ -603,6 +604,71 @@ Step 4 — On trigger
 ```
 
 **Guard types:** fixed stop-loss, fixed take-profit, trailing stop, flash crash (4h drop%), portfolio-level guard
+
+---
+
+### okx-crosschain-swap
+
+Bridge and swap tokens across any chain using LI.FI routing. Finds the best bridge, shows full quote, executes in one tx, and tracks until confirmed on destination.
+
+**Trigger prompts:**
+```
+"swap 100 USDC from Base to Arbitrum"
+"bridge my ETH to Optimism"
+"move 500 USDT from Ethereum to Base"
+"cross-chain swap USDC to USDT Base → Arbitrum"
+"cheapest way to move USDC to Polygon"
+```
+
+**What happens step by step:**
+```
+User: "swap 100 USDC from Base to Arbitrum USDT"
+
+Step 1 — Check chain support
+  GET https://li.quest/v1/chains
+  → Base (8453) ✅  |  Arbitrum (42161) ✅
+
+Step 2 — Resolve token addresses
+  GET https://li.quest/v1/tokens?chains=8453,42161
+  → USDC on Base:    0x833589f... (6 decimals)
+  → USDT on Arbitrum: 0xFd086b... (6 decimals)
+
+Step 3 — Check wallet balance
+  onchainos wallet balance --chain 8453
+  → 245.80 USDC ✅ (enough for 100 + gas)
+
+Step 4 — Get quote
+  GET https://li.quest/v1/quote?fromChain=8453&toChain=42161
+    &fromToken=0x833589f...&toToken=0xFd086b...
+    &fromAmount=100000000&fromAddress=0xYourWallet
+
+  ┌──────────────────────────────────────────────┐
+  │ Send:    100.00 USDC  (Base)                 │
+  │ Receive: 99.24 USDT  (Arbitrum)              │
+  │ Min out: 98.72 USDT  (0.5% slippage)        │
+  │ Bridge:  Stargate V2                         │
+  │ Fee:     $0.48 bridge + $0.09 gas = $0.57   │
+  │ Time:    ~3 minutes                          │
+  └──────────────────────────────────────────────┘
+  "Confirm? (yes/no)"
+
+Step 5 — Execute
+  onchainos wallet contract-call
+    --contract 0xRouterAddress
+    --calldata 0x<transactionRequest.data>
+    --value 0
+  ✅ Source tx: 0xabc...def (Base)
+
+Step 6 — Track status (poll every 15s)
+  GET https://li.quest/v1/status?txHash=0xabc...
+  → PENDING... → PENDING... → DONE ✅
+
+Step 7 — Confirm arrival
+  onchainos wallet balance --chain 42161
+  → 99.24 USDT on Arbitrum ✅
+```
+
+**No API key required** — LI.FI public endpoint used. Supports 30+ chains, 20+ bridges.
 
 ---
 
