@@ -254,14 +254,29 @@ Attempt 3:  DONE ✅
 ──────────────────────────────────────────────────────────
 Sent:       100.00 USDC on Base
 Received:   99.24 USDT on Arbitrum  ✅
-Bridge:     Stargate V2
-Time taken: 2m 41s
-Source tx:  0xabc...def
-Dest tx:    0x123...456
+Bridge:     Stargate V2  (~3 min)
+Fee:        $0.48 (bridge fee)
+──────────────────────────────────────────────────────────
+Source tx:  https://basescan.org/tx/0xabc...def
+Dest tx:    https://arbiscan.io/tx/0x123...456
+LI.FI scan: https://scan.li.fi/tx/0xabc...def
 ──────────────────────────────────────────────────────────
 Your USDT is now on Arbitrum.
 Want to deposit it into yield? → try okx-yield-optimizer
 ```
+
+**Explorer link mapping by chain:**
+| Chain | Explorer base URL |
+|---|---|
+| Base (8453) | `https://basescan.org/tx/` |
+| Arbitrum (42161) | `https://arbiscan.io/tx/` |
+| Ethereum (1) | `https://etherscan.io/tx/` |
+| Optimism (10) | `https://optimistic.etherscan.io/tx/` |
+| Polygon (137) | `https://polygonscan.com/tx/` |
+| BNB Chain (56) | `https://bscscan.com/tx/` |
+| Avalanche (43114) | `https://snowtrace.io/tx/` |
+
+Always use `receiving.txLink` from the LI.FI status response directly — it contains the full ready-to-use explorer URL.
 
 **On PARTIAL (received different token):**
 ```
