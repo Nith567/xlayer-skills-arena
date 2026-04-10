@@ -887,8 +887,11 @@ Zero gas fees make X Layer the default for all automation-heavy skills:
 All skills use OKX Agentic Wallet as onchain identity.
 
 ```
-EVM (Base / Ethereum / Arbitrum / X Layer): 0x<your-address>
+EVM (Base / Ethereum / Arbitrum / X Layer): 0x6924bf1575922794776dfa95c695fe222b74e406
+Solana: hzEixCiFH82gacDLi2L4hKjgNK6RAXTykLgBpmCkdkv
 ```
+
+This wallet is the agent's onchain identity — all demo transactions (cross-chain swaps, LP creation, yield deposits) originate from this address.
 
 ---
 
@@ -954,9 +957,19 @@ xlayer-skills-arena/
 
 ## Team
 
-| Name | Role |
+| Name | GitHub | Role |
+|---|---|---|
+| Nithin Reddy | [@Nith567](https://github.com/Nith567) | Solo Builder — skill design, onchain execution, Uniswap V4 integration |
+
+## Demo & Links
+
+| | Link |
 |---|---|
-| Nithin | Builder |
+| 🎥 Demo Video | *(coming soon — recording in progress)* |
+| 🐦 X Post | *(link after posting with #onchainos @XLayerOfficial)* |
+| 📦 GitHub | https://github.com/Nith567/xlayer-skills-arena |
+| 🔗 Live Bridge Tx (Base→Arbitrum) | https://basescan.org/tx/0x9ce3b262d6fbcee6d72e6e17cca345366b51315f1453033003eecf255057adf4 |
+| ✅ Destination (Arbitrum) | https://arbiscan.io/tx/0x506c89e4ad1c25680e22fdc5e696e912735091af216049430684ab119ac6b79c |
 
 ---
 
