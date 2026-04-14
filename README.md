@@ -26,22 +26,32 @@ chmod +x install.sh && ./install.sh
 
 ## Skills Overview
 
-| Skill | One-liner | Prize Target |
+> All 14 skills below are **custom-built** on top of the OKX Onchain OS base modules. Each SKILL.md contains original logic — scoring formulas, financial algorithms, multi-step orchestration — not just wrappers around CLI commands.
+
+| Skill | What We Built (Custom Logic) | Prize Target |
 |---|---|---|
-| [`okx-auto-rebalance`](#okx-auto-rebalance) | Natural language portfolio rebalancer | Skills Arena |
-| [`okx-yield-optimizer`](#okx-yield-optimizer) | Best APY finder + auto-deposit across 43 protocols | Skills Arena |
-| [`okx-yield-compounder`](#okx-yield-compounder) | Auto-collect + reinvest DeFi rewards for compounded APY | Skills Arena |
-| [`okx-liquidation-guard`](#okx-liquidation-guard) | Health factor monitor + auto-repay before liquidation | Skills Arena |
-| [`okx-uniswap-strategy`](#okx-uniswap-strategy) | Data-driven LP creator with volatility-based ranges | Uniswap + Data Analyst |
-| [`okx-lp-position-manager`](#okx-lp-position-manager) | LP health checker, IL calculator, range rebalancer | Uniswap |
-| [`okx-onchain-analyst`](#okx-onchain-analyst) | Portfolio PnL, Sharpe ratio, correlation, signals | Data Analyst |
-| [`okx-token-screener`](#okx-token-screener) | Smart money + RSI + volume spike token scanner | Data Analyst |
-| [`okx-copy-trader`](#okx-copy-trader) | Mirror smart money / whale / KOL trades automatically | Most Innovative |
-| [`okx-smart-dca`](#okx-smart-dca) | RSI-adjusted DCA with automated scheduling | Most Innovative |
-| [`okx-risk-guard`](#okx-risk-guard) | Stop-loss / take-profit with auto-swap execution | Most Innovative |
-| [`okx-meme-scout`](#okx-meme-scout) | pump.fun scanner — filters 800+ launches to safe buys via dev + bundle checks | Most Innovative |
-| [`okx-v4-rebalancer`](#okx-v4-rebalancer) | Atomic burn→swap→mint in one tx using V4 flash accounting — 3× cheaper than V3 | **Uniswap Prize** |
-| [`okx-crosschain-swap`](#okx-crosschain-swap) | Bridge any token across 30+ chains via LI.FI — quote, execute, track status | Skills Arena |
+| [`okx-auto-rebalance`](#okx-auto-rebalance) | NL % parser → multi-hop swap sequencer, slippage-aware routing | Skills Arena |
+| [`okx-yield-optimizer`](#okx-yield-optimizer) | APY scorer across DeFi Llama 17k pools: risk-adjusted rank, gas payback calc | Skills Arena |
+| [`okx-yield-compounder`](#okx-yield-compounder) | Reward→reinvest loop + gas efficiency gate (skip if gas > 10% of reward) | Skills Arena |
+| [`okx-liquidation-guard`](#okx-liquidation-guard) | HF formula + 3-tier alert system (warn/repay/emergency) via CronCreate | Skills Arena |
+| [`okx-uniswap-strategy`](#okx-uniswap-strategy) | 30d volatility → optimal tick range + DexScreener pool scoring | Uniswap + Data Analyst |
+| [`okx-lp-position-manager`](#okx-lp-position-manager) | Concentrated liquidity IL formula + range drift detection + auto-rebalance | Uniswap |
+| [`okx-onchain-analyst`](#okx-onchain-analyst) | Sharpe ratio, RSI, correlation matrix, health score (5-factor weighted formula) | Data Analyst |
+| [`okx-token-screener`](#okx-token-screener) | Opportunity score: SM consensus(35%) + RSI(25%) + vol spike(20%) + momentum(10%) + safety(10%) | Data Analyst |
+| [`okx-copy-trader`](#okx-copy-trader) | 4-mode copy engine: proportional sizing + auto-exit on smart money 30% sell | Most Innovative |
+| [`okx-smart-dca`](#okx-smart-dca) | RSI multiplier table (RSI<25 → 2×, RSI>75 → 0.5×) + cost basis tracker | Most Innovative |
+| [`okx-risk-guard`](#okx-risk-guard) | Trailing stop + flash crash guard + portfolio-level circuit breaker, 30min cron | Most Innovative |
+| [`okx-meme-scout`](#okx-meme-scout) | 4-stage rug filter: bonding curve + dev history + bundle pct + holder count → score/100 | Most Innovative |
+| [`okx-v4-rebalancer`](#okx-v4-rebalancer) | V4 flash accounting: atomic DECREASE→COLLECT→SWAP→MINT in 1 tx, 3× cheaper than V3 | **Uniswap Prize** |
+| [`okx-crosschain-swap`](#okx-crosschain-swap) | LI.FI routing (no API key) + full approve→bridge→poll status flow with explorer links | Skills Arena |
+
+---
+
+## Base OKX Skills Used (not built by us)
+
+These are the OKX Onchain OS foundation modules our skills are built on top of:
+
+`okx-agentic-wallet` · `okx-dex-swap` · `okx-dex-market` · `okx-dex-signal` · `okx-dex-trenches` · `okx-security` · `okx-defi-invest` · `okx-defi-portfolio` · `okx-wallet-portfolio` · `okx-onchain-gateway`
 
 ---
 
