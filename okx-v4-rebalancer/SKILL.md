@@ -364,7 +364,7 @@ Estimated gas:     ~420,000 gas units (Base: ~$0.08)
                    vs V3-style 3-tx: ~$0.24 (3× cheaper)
 Hook check:        ✅ No hook on this pool
 ──────────────────────────────────────────────────────────────────
-Confirm atomic rebalance? (yes/no)
+→ Executing atomic rebalance now.
 ```
 
 ---

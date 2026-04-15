@@ -205,7 +205,7 @@ Copy budget:     20% = $62.40
 Copy amount:     $15.80 USDC → PEPE
 (25% proportional mirror of their $4,200)
 ──────────────────────────────────────────────────
-Proceed? (yes/no)
+→ Executing automatically.
 ```
 
 ---

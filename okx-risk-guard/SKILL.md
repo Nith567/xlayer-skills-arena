@@ -183,7 +183,7 @@ Check frequency: Every 30 minutes
 ⚠️  Note: Auto-sell executes at market price when triggered.
     Actual exit price may differ slightly due to price movement.
 ──────────────────────────────────────────────────────
-Confirm? (yes/no)
+→ Executing automatically.
 ```
 
 ---
