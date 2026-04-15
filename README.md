@@ -64,6 +64,11 @@ chmod +x install.sh && ./install.sh   # installs to ~/.claude/skills/
 "analyze my portfolio and show Sharpe ratio"
 "rebalance 70% ETH 30% USDC on X Layer"
 "set stop-loss on ETH at $1800"
+
+# Uniswap V4 skills (live on Base):
+"deploy ETH/USDC V4 pool with our XLayer hook and add LP with 0.0003 ETH on Base"
+"rebalance V4 position #2159358 on Base atomically"
+"analyze my ETH/USDC V4 LP position #2159358 on Base — is it still earning fees?"
 ```
 
 ---
@@ -86,7 +91,9 @@ chmod +x install.sh && ./install.sh   # installs to ~/.claude/skills/
 | [`okx-smart-dca`](#okx-smart-dca) | RSI multiplier table (RSI<25 → 2×, RSI>75 → 0.5×) + cost basis tracker |
 | [`okx-risk-guard`](#okx-risk-guard) | Trailing stop + flash crash guard + portfolio-level circuit breaker, 30min cron |
 | [`okx-meme-scout`](#okx-meme-scout) | 4-stage rug filter: bonding curve + dev history + bundle pct + holder count → score/100 |
-| [`okx-v4-rebalancer`](#okx-v4-rebalancer) | V4 flash accounting: atomic DECREASE→COLLECT→SWAP→MINT in 1 tx, 3× cheaper than V3 |
+| [`okx-v4-deposit`](#okx-v4-deposit) | Mint V4 LP position end-to-end: 30d vol range calc → MINT_POSITION calldata → execute → returns NFT ID |
+| [`okx-v4-pool-launcher`](#okx-v4-pool-launcher) | Deploy V4 hook via CREATE2 + init pool + mint LP — full 3-step flow, no private key needed |
+| [`okx-v4-rebalancer`](#okx-v4-rebalancer) | Atomic DECREASE→MINT→CLOSE_CURRENCY in 1 tx via V4 flash accounting, 3× cheaper than V3 |
 | [`okx-crosschain-swap`](#okx-crosschain-swap) | LI.FI routing (no API key) + full approve→bridge→poll status flow with explorer links |
 
 ---
@@ -147,7 +154,8 @@ Every skill follows the same 6-step pattern:
 
 | onchainos Command | Skills Using It |
 |---|---|
-| `wallet balance` | all 11 skills |
+| `wallet balance` | all skills |
+| `wallet contract-call` | v4-deposit, v4-pool-launcher, v4-rebalancer, crosschain-swap |
 | `swap execute` | auto-rebalance, uniswap-strategy, lp-position-manager, risk-guard, smart-dca, copy-trader, liquidation-guard |
 | `swap quote` | smart-dca, risk-guard |
 | `market kline` | uniswap-strategy, lp-position-manager, onchain-analyst, smart-dca, risk-guard, token-screener |
@@ -179,9 +187,10 @@ Every skill follows the same 6-step pattern:
 | `v4-security-foundations` | uniswap-strategy, lp-position-manager | Hook permission matrix — blocks CRITICAL flags |
 | `swap-planner` | lp-position-manager | Finds best multi-hop swap route for rebalancing |
 | `swap-integration` | lp-position-manager | Splits large swaps across pools to reduce price impact |
-| `viem-integration` | v4-rebalancer | Construct V4 PoolManager unlock calldata + atomic multicall actions |
-| `configurator` | v4-rebalancer | Pool key construction, tick spacing, dynamic fee flag detection |
-| `deployer` | v4-rebalancer | Optional rebalancer hook deployment on V4 |
+| `liquidity-planner` | uniswap-strategy, lp-position-manager, **v4-deposit** | 30d vol → TIGHT/MEDIUM/WIDE tick range presets |
+| `viem-integration` | v4-rebalancer, **v4-deposit** | Encode MINT_POSITION / DECREASE_LIQUIDITY calldata for V4 PositionManager |
+| `configurator` | v4-rebalancer, **v4-deposit**, **v4-pool-launcher** | Pool key construction, tick spacing, sqrtPriceX96 calculation |
+| `deployer` | **v4-pool-launcher** | Hook CREATE2 deployment via onchainos contract-call |
 
 ---
 
@@ -1036,6 +1045,142 @@ Step 7 — Confirm arrival
 
 ---
 
+### okx-v4-deposit
+
+Add liquidity to a Uniswap V4 pool in a single transaction. Handles tick range calculation from 30d volatility, native ETH handling, USDC approval, and MINT_POSITION calldata encoding via `onchainos wallet contract-call`. **Returns NFT token ID** so you can reference it for rebalancing later.
+
+**Architecture:**
+```
+User prompt (token pair + amount + chain)
+    │
+    ├─ okx-dex-market    → current price + 30d klines
+    ├─ okx-agentic-wallet → balance check
+    │
+    ▼
+[CUSTOM] liquidity-planner logic:
+         daily_vol = std_dev(30d returns)
+         weekly_vol = daily_vol × √7
+         TIGHT / MEDIUM / WIDE range presets
+         tick_lower, tick_upper (rounded to tick spacing 60)
+
+[CUSTOM] viem-integration calldata builder:
+         Actions = [MINT_POSITION, SETTLE_PAIR, SWEEP]
+         hookData offset = 0x180 (V4 custom CalldataDecoder)
+         native ETH as msg.value (no WRAP action)
+         PositionManager.modifyLiquidities(unlockData, deadline)
+    │
+    └─ onchainos wallet contract-call → execute
+    │
+    ▼
+✅ Returns: TX (basescan link) + NFT Token ID + range + "💾 To rebalance: say 'rebalance V4 position #ID'"
+```
+
+**Live Deployed Pool (Base mainnet):**
+```
+Hook:     0xA5F8bdB306774B6068aC8e73eAAd53B3649d5000
+Pool:     ETH/USDC · 0.30% · tick spacing 60
+Pool ID:  0xf13ad8e14ce05706f14160709144a36e309b9f4a2c6e4be0940dc386aed8b77f
+PositionManager: 0x7C5f5A4bBd8fD63184577525326123B519429bDc
+```
+
+**Trigger prompts:**
+```
+"add LP with 0.0003 ETH to our XLayer V4 hook pool on Base"
+"deposit ETH and USDC into V4"
+"create a Uniswap V4 LP position"
+"mint V4 position on Base"
+"provide liquidity on Base V4"
+"add LP to our XLayerHook pool"
+```
+
+**What happens step by step:**
+```
+Step 1 — Fetch price + balance
+  onchainos market price → ETH: $2,363
+  onchainos wallet balance → 0.0003 ETH available ✅
+
+Step 2 — 30d volatility range (liquidity-planner)
+  onchainos market kline --bar 1D --limit 30
+  daily_vol = 2.8%  |  weekly_vol = 7.4%
+  MEDIUM range: $2,363 × (1 ± 7.4% × 1.5)
+  → price_lower = $2,100  |  price_upper = $2,630
+  → tick_lower = -201,060  |  tick_upper = -198,480
+
+Step 3 — Encode MINT_POSITION calldata (viem-integration)
+  Actions: [MINT_POSITION, SETTLE_PAIR, SWEEP]
+  Pool key: {0x0000...0000, 0x8335...2913, 3000, 60, 0xA5F8...5000}
+  hookData offset = 0x180 (V4 CalldataDecoder requirement)
+  msg.value = 0.0003 ETH (native, no WRAP)
+
+Step 4 — Execute
+  onchainos wallet contract-call
+    --to 0x7C5f5A4bBd8fD63184577525326123B519429bDc
+    --chain 8453 --amt 300000000000000 --gas-limit 400000
+
+Step 5 — Confirm
+  ✅ V4 Position Minted
+  TX:           https://basescan.org/tx/0x...
+  NFT Token ID: #2159358  ← save this!
+  Range:        $2,100 – $2,630 ✅ in range
+  Ticks:        -201,060 / -198,480
+
+  💾 To rebalance later: "rebalance V4 position #2159358 on Base"
+```
+
+**Chains:** Base · Ethereum · Arbitrum
+
+---
+
+### okx-v4-pool-launcher
+
+Deploy a complete Uniswap V4 pool from scratch — hook contract via CREATE2, pool initialization, and first LP position — all without a private key, via `onchainos wallet contract-call`.
+
+**Architecture:**
+```
+User prompt (token pair + amount + chain)
+    │
+    ├─ okx-agentic-wallet → balance check
+    │
+    ▼
+[CUSTOM] Step 1 — Hook deployment via CREATE2:
+         HookMiner: iterate salts until address & 0x3FFF == flags
+         flags = 1 << 12 (afterInitialize = 0x1000)
+         CREATE2 factory: 0x4e59b44847b379578588920cA78FbF26c0B4956C
+         onchainos wallet contract-call → deploy hook
+
+[CUSTOM] Step 2 — Pool initialization:
+         PoolManager.initialize(poolKey, sqrtPriceX96)
+         selector: 0x6276cbbe
+         sqrtPriceX96 = sqrt(price_usd / 10^12) × 2^96
+         onchainos wallet contract-call → init pool
+
+[CUSTOM] Step 3 — Mint first LP position:
+         → routes to okx-v4-deposit for MINT_POSITION encoding
+    │
+    ▼
+Hook address + Pool ID + NFT token ID — all from onchainos, no private key
+```
+
+**Live Deployed (Base mainnet):**
+```
+Hook deploy TX: 0x2372328c118afe68c6243986c03b8d65faae2f1fae1784da52adb28d4c356db6
+Pool init TX:   0xe228a19dfedbad073627f1ddf0e5ff44e88fb78e116a36d5e6f4dbecc2d12e37
+Hook address:   0xA5F8bdB306774B6068aC8e73eAAd53B3649d5000
+Pool ID:        0xf13ad8e14ce05706f14160709144a36e309b9f4a2c6e4be0940dc386aed8b77f
+```
+
+**Trigger prompts:**
+```
+"deploy ETH/USDC V4 pool with our XLayer hook and add LP with 0.0003 ETH on Base"
+"launch a new Uniswap V4 pool"
+"create a V4 pool with a custom hook"
+"deploy V4 hook and initialize pool"
+```
+
+**Chains:** Base · Ethereum · Arbitrum
+
+---
+
 ### okx-v4-rebalancer
 
 Atomic Liquidity Management for Uniswap V4. Executes a complete burn → swap → mint rebalance in **one single transaction** using V4 PoolManager flash accounting — 3× cheaper than V3-style rebalancing, zero price exposure between steps.
@@ -1075,14 +1220,22 @@ BURNED old | SWAPPED ratio | MINTED new range | gas saved vs V3
 ```
 **Custom logic:** Full V4 flash accounting action sequence builder, atomic 5-step multicall encoder, V3 vs V4 gas comparison. Uses all 5 Uniswap AI skills in one flow.
 
-**Live Deployed Hook (Base mainnet):**
+**Live Deployed Infrastructure (Base mainnet):**
 ```
 XLayerHook (our deployed V4 hook):
-  Address:  0x62B6992Ff0C8bb46d295d438888Fa0584B040000
-  TX:       0x7362ef42e18312dd72a44d60fa2d9affe0da6620bcbe8880289e182419f07a5a
-  Basescan: https://basescan.org/address/0x62B6992Ff0C8bb46d295d438888Fa0584B040000
+  Address:  0xA5F8bdB306774B6068aC8e73eAAd53B3649d5000
+  Deploy TX: 0x2372328c118afe68c6243986c03b8d65faae2f1fae1784da52adb28d4c356db6
+  Basescan: https://basescan.org/address/0xA5F8bdB306774B6068aC8e73eAAd53B3649d5000
   Deployed via: onchainos wallet contract-call → CREATE2 factory (no private key needed)
-  Permissions: all false (zero overhead pass-through hook)
+  Permission flag: afterInitialize (bit 12 = 0x1000)
+
+ETH/USDC Pool with XLayerHook:
+  Pool ID:  0xf13ad8e14ce05706f14160709144a36e309b9f4a2c6e4be0940dc386aed8b77f
+  Init TX:  0xe228a19dfedbad073627f1ddf0e5ff44e88fb78e116a36d5e6f4dbecc2d12e37
+
+Live LP Position:
+  NFT:      #2159358  (ETH/USDC, ticks -198480 / -196680)
+  Minted via onchainos wallet contract-call → PositionManager (no private key)
 ```
 
 **Trigger prompts:**
@@ -1091,7 +1244,8 @@ XLayerHook (our deployed V4 hook):
 "my Uniswap V4 position is out of range"
 "atomic burn and remint my V4 liquidity"
 "single tx LP rebalance on Base"
-"rebalance my ETH/USDC V4 position"
+"rebalance V4 position #2159358"
+"rebalance my ETH/USDC V4 position on Base atomically"
 ```
 
 **Why V4 atomic is better than V3:**
