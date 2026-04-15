@@ -2,7 +2,7 @@
 
 A suite of **14 agentic DeFi skills** built on OKX Onchain OS. Each skill is a standalone Claude agent that understands natural language, fetches live onchain data, analyzes it, and executes — combining OKX onchainos CLI, Uniswap AI skills, OKX DEX Signal, DexScreener, and DeFi Llama into complete end-to-end workflows.
 
-Built for the OKX Onchain OS Hackathon — targeting **Best Skills Arena**, **Best Data Analyst**, and **Best Uniswap Integration** tracks.
+> **Live registry:** https://x-layer-skills.up.railway.app/skills — install any skill with one curl command, works on both Claude Code and OpenClaw.
 
 ---
 
@@ -966,7 +966,14 @@ User prompt (token + from_chain + to_chain + amount)
     ▼
 ✅ Sent | ✅ Received | Source tx link | Dest tx link | LI.FI scan link
 ```
-**Custom logic:** ERC-20 approve calldata builder, LI.FI route executor via onchainos contract-call, status poller with explorer links for both chains. **Live tested: Base → Arbitrum 0.032 USDC in <2s via Eco bridge.**
+**Custom logic:** ERC-20 approve calldata builder, LI.FI route executor via onchainos contract-call, status poller with explorer links for both chains.
+
+**Live demo tx — 0.032 USDC Base → Arbitrum (<2s via Eco bridge):**
+| | |
+|---|---|
+| Source tx (Base) | https://basescan.org/tx/0x9ce3b262d6fbcee6d72e6e17cca345366b51315f1453033003eecf255057adf4 |
+| Destination tx (Arbitrum) | https://arbiscan.io/tx/0x506c89e4ad1c25680e22fdc5e696e912735091af216049430684ab119ac6b79c |
+| LI.FI scan | https://scan.li.fi/tx/0x9ce3b262d6fbcee6d72e6e17cca345366b51315f1453033003eecf255057adf4 |
 
 **Trigger prompts:**
 ```
@@ -1396,8 +1403,7 @@ xlayer-skills-arena/
 | 🎥 Demo Video | *(coming soon — recording in progress)* |
 | 🐦 X Post | *(link after posting with #onchainos @XLayerOfficial)* |
 | 📦 GitHub | https://github.com/Nith567/xlayer-skills-arena |
-| 🔗 Live Bridge Tx (Base→Arbitrum) | https://basescan.org/tx/0x9ce3b262d6fbcee6d72e6e17cca345366b51315f1453033003eecf255057adf4 |
-| ✅ Destination (Arbitrum) | https://arbiscan.io/tx/0x506c89e4ad1c25680e22fdc5e696e912735091af216049430684ab119ac6b79c |
+| 🌐 Live Registry | https://x-layer-skills.up.railway.app/skills |
 
 ---
 
