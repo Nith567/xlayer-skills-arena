@@ -28,7 +28,7 @@ function getSkills() {
         name: nameMatch ? nameMatch[1].trim() : folder,
         description: descMatch ? descMatch[1].trim() : "",
         license: licenseMatch ? licenseMatch[1].trim() : "MIT",
-        skill_url: `${process.env.BASE_URL || "http://localhost:3000"}/skills/${folder}`,
+        skill_url: `${process.env.BASE_URL || "https://x-layer-skills.up.railway.app"}/skills/${folder}`,
         raw_url: `https://raw.githubusercontent.com/Nith567/xlayer-skills-arena/main/${folder}/SKILL.md`,
       };
     });
@@ -44,7 +44,7 @@ app.get("/", (req, res) => {
     agent_wallet: "0x6924bf1575922794776dfa95c695fe222b74e406",
     total_skills: skills.length,
     install: "curl -s https://raw.githubusercontent.com/Nith567/xlayer-skills-arena/main/install.sh | bash",
-    skills_index: `${process.env.BASE_URL || "http://localhost:3000"}/skills`,
+    skills_index: `${process.env.BASE_URL || "https://x-layer-skills.up.railway.app"}/skills`,
   });
 });
 
