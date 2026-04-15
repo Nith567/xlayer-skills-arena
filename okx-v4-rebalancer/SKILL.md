@@ -1,6 +1,6 @@
 ---
 name: okx-v4-rebalancer
-description: "Use this skill when the user wants to rebalance an out-of-range Uniswap V4 LP position atomically, execute a burn-mint cycle in a single transaction, use V4 flash accounting for gas-efficient liquidity rebalancing, or asks things like 'rebalance my V4 LP atomically', 'my Uniswap V4 position is out of range rebalance it', 'burn and remint my V4 liquidity', 'atomic LP rebalance on V4', 'use V4 flash accounting to rebalance', 'single tx LP rebalance', 'efficient LP rebalance Uniswap V4', 'rebalance my concentrated liquidity position', 'rebalance my ETH/USDC V4 position on Base atomically'. Executes a full atomic DECREASE_LIQUIDITY → MINT_POSITION → CLOSE_CURRENCY rebalance cycle using Uniswap V4 PositionManager modifyLiquidities with flash accounting — all in one transaction. New range is calculated from 30d volatility data. Works on Ethereum, Base, Arbitrum."
+description: "Use this skill when the user wants to rebalance an out-of-range Uniswap V4 LP position atomically, execute a burn-mint cycle in a single transaction, use V4 flash accounting for gas-efficient liquidity rebalancing, or asks things like 'rebalance my V4 LP atomically', 'my Uniswap V4 position is out of range rebalance it', 'burn and remint my V4 liquidity', 'atomic LP rebalance on V4', 'use V4 flash accounting to rebalance', 'single tx LP rebalance', 'rebalance my ETH/USDC V4 position on Base atomically', 'rebalance position #2159358', 'rebalance #2159358', 'rebalance this position', 'rebalance the LP I just created'. When the user provides a position NFT ID (like #2159358 or any number), use that as the tokenId. Default position is NFT #2159358 on Base if no ID given. Executes full atomic DECREASE_LIQUIDITY → MINT_POSITION → CLOSE_CURRENCY rebalance using V4 PositionManager modifyLiquidities. New range from 30d volatility. Works on Ethereum, Base, Arbitrum."
 license: MIT
 metadata:
   author: xlayer-skills
@@ -63,13 +63,27 @@ hooks:       0xA5F8bdB306774B6068aC8e73eAAd53B3649d5000
 
 ## Execution Flow
 
-### Step 1 — Parse Intent
+### Step 1 — Parse Intent + Resolve Position ID
 
-If user says "rebalance my ETH/USDC V4 position on Base atomically" or similar, use the **Live XLayer Skills V4 Position** defaults above without asking. Otherwise extract:
-- Token pair (default: ETH/USDC)
-- Chain (default: Base)
-- NFT token ID (default: 2159358)
-- Current tick range + liquidity (use defaults above if not given)
+**If user says any of these → use NFT #2159358 defaults immediately:**
+- "rebalance my ETH/USDC V4 position on Base atomically"
+- "rebalance my position"
+- "rebalance my V4 LP"
+- "rebalance the LP I just created"
+
+**If user gives a specific NFT ID** (e.g. "rebalance #2159358" or "rebalance position #XXXXXXX"):
+- Extract the number after `#` → that is the `tokenId`
+- Use all other defaults (chain=Base, pool=ETH/USDC XLayerHook, PositionManager=`0x7C5f5A4bBd8fD63184577525326123B519429bDc`)
+
+**Position state to resolve** (use defaults if not given by user):
+- Token pair: ETH/USDC
+- Chain: Base (8453)
+- NFT token ID: `2159358`
+- tick_lower: `-198480`
+- tick_upper: `-196680`
+- liquidity: `207847564971`
+
+> The `okx-v4-deposit` skill outputs `💾 To rebalance this position later, say: "rebalance V4 position #XXXXXXX on Base"` — this is how users get their reference ID.
 
 ---
 

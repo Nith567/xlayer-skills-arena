@@ -246,12 +246,13 @@ onchainos wallet contract-call \
 
 ### Step 7 — Confirm Position
 
-After tx confirms, show result:
+After tx confirms, parse the NFT token ID from the transaction receipt (emitted in the `Transfer` event from PositionManager) and show result:
 
 ```
 ✅ V4 Position Minted — ETH/USDC (Base)
 ──────────────────────────────────────────────────────────────
 TX:            https://basescan.org/tx/0x...
+NFT Token ID:  #XXXXXXX   ← save this!
 Pool:          ETH/USDC · 0.30% · XLayerHook
 Hook:          0xA5F8bdB306774B6068aC8e73eAAd53B3649d5000
 
@@ -261,11 +262,16 @@ Tick range:    -202,980 / -200,520
 
 Earning fees:  ✅ Yes (current $2,363 is inside range)
 Fee tier:      0.30%
-Est. fee APY:  ~54% (based on current pool volume)
 
 View position: https://app.uniswap.org/positions
 ──────────────────────────────────────────────────────────────
+
+💾 To rebalance this position later, say:
+   "rebalance V4 position #XXXXXXX on Base"
+──────────────────────────────────────────────────────────────
 ```
+
+> The NFT Token ID is the position reference. Any time the user mentions it, the `okx-v4-rebalancer` skill will use it to look up and rebalance that specific position.
 
 ---
 
