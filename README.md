@@ -8,19 +8,63 @@ Built for the OKX Onchain OS Hackathon — targeting **Best Skills Arena**, **Be
 
 ## Quick Start
 
+### Option A — Claude Code
+
 ```bash
-# 1. Clone the repo
+# 1. Install skills from live registry (no clone needed)
+curl -s https://x-layer-skills.up.railway.app/skills | python3 -c "
+import json,sys,os,urllib.request
+skills = json.load(sys.stdin)
+for s in skills:
+    folder = os.path.expanduser(f'~/.claude/skills/{s[\"id\"]}')
+    os.makedirs(folder, exist_ok=True)
+    urllib.request.urlretrieve(s['raw_url'], f'{folder}/SKILL.md')
+    print(f'✅ installed {s[\"id\"]}')
+"
+
+# 2. Open Claude Code
+claude
+
+# 3. Type any prompt — skills load automatically
+```
+
+### Option B — OpenClaw
+
+```bash
+# 1. Install skills from live registry
+curl -s https://x-layer-skills.up.railway.app/skills | python3 -c "
+import json,sys,os,urllib.request
+skills = json.load(sys.stdin)
+for s in skills:
+    folder = os.path.expanduser(f'~/.openclaw/workspace/skills/{s[\"id\"]}')
+    os.makedirs(folder, exist_ok=True)
+    urllib.request.urlretrieve(s['raw_url'], f'{folder}/SKILL.md')
+    print(f'✅ installed {s[\"id\"]}')
+"
+
+# 2. Restart OpenClaw and start using
+openclaw gateway restart
+```
+
+### Option C — Clone & install locally
+
+```bash
 git clone https://github.com/Nith567/xlayer-skills-arena.git
 cd xlayer-skills-arena
-
-# 2. Install all skills (copies to ~/.claude/skills/)
-chmod +x install.sh && ./install.sh
-
-# 3. Open Claude Code and start using
+chmod +x install.sh && ./install.sh   # installs to ~/.claude/skills/
 ```
 
 > `onchainos` CLI is auto-installed on first run via the shared preflight check.
 > You need an OKX Agentic Wallet set up for execution. [Get started →](https://web3.okx.com/onchain-os)
+
+### Try these prompts after installing
+```
+"swap 0.032 USDC from Base to Arbitrum"
+"scan pump.fun for safe meme coins"
+"analyze my portfolio and show Sharpe ratio"
+"rebalance 70% ETH 30% USDC on X Layer"
+"set stop-loss on ETH at $1800"
+```
 
 ---
 
