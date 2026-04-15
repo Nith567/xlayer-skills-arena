@@ -1075,6 +1075,16 @@ BURNED old | SWAPPED ratio | MINTED new range | gas saved vs V3
 ```
 **Custom logic:** Full V4 flash accounting action sequence builder, atomic 5-step multicall encoder, V3 vs V4 gas comparison. Uses all 5 Uniswap AI skills in one flow.
 
+**Live Deployed Hook (Base mainnet):**
+```
+XLayerHook (our deployed V4 hook):
+  Address:  0x62B6992Ff0C8bb46d295d438888Fa0584B040000
+  TX:       0x7362ef42e18312dd72a44d60fa2d9affe0da6620bcbe8880289e182419f07a5a
+  Basescan: https://basescan.org/address/0x62B6992Ff0C8bb46d295d438888Fa0584B040000
+  Deployed via: onchainos wallet contract-call → CREATE2 factory (no private key needed)
+  Permissions: all false (zero overhead pass-through hook)
+```
+
 **Trigger prompts:**
 ```
 "rebalance my V4 LP atomically"
