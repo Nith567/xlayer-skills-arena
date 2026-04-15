@@ -149,6 +149,26 @@ Every skill follows the same 6-step pattern:
 
 Rebalance your entire portfolio to any target allocation by describing it in plain English.
 
+**Architecture:**
+```
+User prompt (NL % targets)
+    │
+    ├─ okx-agentic-wallet  → fetch live balances
+    ├─ okx-dex-market      → current prices
+    │
+    ▼
+[CUSTOM] NL parser → extract token/% pairs
+[CUSTOM] Delta calculator → current vs target
+[CUSTOM] Swap sequencer → sell-first ordering (avoids insufficient balance)
+    │
+    ├─ okx-dex-swap        → execute each swap
+    └─ okx-security        → token safety check
+    │
+    ▼
+Summary: token | old% | new% | tx hash
+```
+**Custom logic:** Natural language % parser, sell-first sequencing to avoid balance conflicts, slippage-aware multi-hop ordering.
+
 **Trigger prompts:**
 ```
 "rebalance my portfolio: 70% ETH, 20% USDT, 10% USDC on Base"
@@ -194,6 +214,28 @@ Step 5 — Result
 
 Scans 43 DeFi platforms for the best yield, cross-references DeFi Llama for market context, scores every option, and auto-deposits.
 
+**Architecture:**
+```
+User prompt (token + amount)
+    │
+    ├─ okx-agentic-wallet  → balance check
+    ├─ okx-defi-invest     → search all protocols
+    ├─ DeFi Llama API      → 17k pool APY context
+    │
+    ▼
+[CUSTOM] Risk-adjusted scorer:
+         APY(50%) + TVL(30%) + protocol_reputation(20%)
+[CUSTOM] Gas payback calculator:
+         skip if gas_cost > 3months_yield_gain
+    │
+    ├─ okx-defi-invest     → deposit to winner
+    └─ okx-defi-portfolio  → confirm position
+    │
+    ▼
+Ranked table: rank | protocol | APY | TVL | score
+```
+**Custom logic:** Multi-source APY scorer, gas-adjusted ROI gate, TVL-weighted risk rating.
+
 **Trigger prompts:**
 ```
 "find best yield for my USDC"
@@ -232,6 +274,26 @@ Step 5 — Deposit (user says "500 into Fluid")
 ### okx-yield-compounder
 
 Auto-collect and reinvest DeFi rewards to maximize compounded APY. Turns a flat 4.2% into a higher effective yield.
+
+**Architecture:**
+```
+CronCreate (daily/weekly) OR manual trigger
+    │
+    ├─ okx-defi-portfolio  → scan all positions + pending rewards
+    │
+    ▼
+[CUSTOM] Gas efficiency gate:
+         skip if gas_cost > 10% of reward_value
+[CUSTOM] Compounding APY math:
+         effective_apy = (1 + flat_apy/n)^n - 1
+    │
+    ├─ okx-defi-invest (collect) → harvest rewards
+    └─ okx-defi-invest (invest)  → reinvest same protocol
+    │
+    ▼
+Report: collected | reinvested | new balance | effective APY
+```
+**Custom logic:** Gas efficiency gate (skip tiny rewards on Ethereum), compounding frequency optimizer, X Layer special path (gas=$0 → compound daily always).
 
 **Trigger prompts:**
 ```
@@ -275,6 +337,30 @@ Step 4 — Schedule (CronCreate weekly)
 ### okx-liquidation-guard
 
 Monitors DeFi borrow positions and auto-repays before the protocol liquidates you at a penalty.
+
+**Architecture:**
+```
+CronCreate (hourly) OR manual trigger
+    │
+    ├─ okx-defi-portfolio  → fetch all borrow positions
+    ├─ okx-dex-market      → current collateral prices
+    │
+    ▼
+[CUSTOM] Health Factor formula:
+         HF = (collateral × liq_threshold) / debt
+[CUSTOM] Liquidation price calculator
+[CUSTOM] 3-tier alert system:
+         HF < 1.5 → warn
+         HF < 1.2 → auto-repay to HF 1.5
+         HF < 1.05 → emergency max repay
+    │
+    ├─ okx-agentic-wallet  → check repay funds available
+    └─ okx-defi-invest     → repay debt
+    │
+    ▼
+Status: HF before | HF after | amount repaid | tx hash
+```
+**Custom logic:** HF formula per protocol (Aave V3 uses per-asset thresholds), liquidation price projection, tiered auto-repay with target HF of 1.5.
 
 **Trigger prompts:**
 ```
@@ -321,6 +407,34 @@ Step 5 — CronCreate monitor (hourly)
 ### okx-uniswap-strategy
 
 Creates optimal Uniswap V3/V4 LP positions using real onchain volatility data to set statistically-grounded price ranges.
+
+**Architecture:**
+```
+User prompt (token pair + chain)
+    │
+    ├─ okx-agentic-wallet   → balance check
+    ├─ okx-dex-market       → 30d kline data
+    ├─ DexScreener API      → pool TVL, volume, fee APY per tier
+    ├─ DeFi Llama API       → market-wide APY context
+    │
+    ▼
+[CUSTOM] Volatility engine:
+         daily_vol = std_dev(30d close returns)
+         weekly_vol = daily_vol × √7
+         range = current_price × (1 ± vol × 1.5)
+[CUSTOM] Fee tier scorer:
+         fee_apy = volume24h × fee_rate × 365 / TVL
+         score = fee_apy(60%) + TVL_stability(40%)
+    │
+    ├─ Uniswap AI: liquidity-planner  → tick range deep link
+    ├─ Uniswap AI: v4-security-foundations → hook check
+    ├─ okx-security  → token safety check
+    └─ okx-dex-swap  → ratio balance swap if needed
+    │
+    ▼
+Uniswap deep link with pre-filled range + CronCreate monitor
+```
+**Custom logic:** 30d historical volatility → tick range calculation, fee tier ranking by real yield, token ratio balancer before LP creation.
 
 **Trigger prompts:**
 ```
@@ -369,6 +483,30 @@ Step 6 — CronCreate hourly range monitor
 
 Manages the full LP lifecycle after creation — profitability check, IL calculation, out-of-range rebalancing.
 
+**Architecture:**
+```
+User prompt (check / rebalance / exit LP)
+    │
+    ├─ okx-defi-portfolio  → fetch open LP positions
+    ├─ okx-dex-market      → current price + 30d kline
+    │
+    ▼
+[CUSTOM] Concentrated IL formula:
+         il = 2√(price_ratio) / (1 + price_ratio) - 1
+         amplified by sqrt(maxPrice/minPrice) for range width
+[CUSTOM] Net P&L = fees_earned - IL_cost
+[CUSTOM] Out-of-range drift detector → flag stale positions
+    │
+    if rebalance needed:
+    ├─ Uniswap AI: swap-planner  → best swap route
+    ├─ okx-dex-swap              → rebalance token ratio
+    └─ Uniswap AI: liquidity-planner → new range deep link
+    │
+    ▼
+Position health: in-range✅/out❌ | fees | IL | net P&L | action
+```
+**Custom logic:** Concentrated liquidity IL formula (not standard 50/50 IL), net profitability = fees − IL, range drift detection.
+
 **Trigger prompts:**
 ```
 "is my ETH/USDC LP still in range"
@@ -402,6 +540,33 @@ Step 3 — Rebalance (if user confirms)
 ### okx-onchain-analyst
 
 Deep portfolio analytics — 30-day PnL, Sharpe ratio, token correlation matrix, market signals.
+
+**Architecture:**
+```
+User prompt (analyze portfolio)
+    │
+    ├─ okx-agentic-wallet  → all token holdings
+    ├─ okx-dex-market      → 30d kline per token (parallel)
+    ├─ okx-dex-signal      → smart money signal overlay
+    │
+    ▼
+[CUSTOM] Per-token metrics engine:
+         PnL = (current - entry) / entry
+         annualized_vol = std_dev(daily_returns) × √365
+         sharpe = (annualized_return - 0.05) / annualized_vol
+         RSI(14) = 100 - 100/(1 + avg_gain/avg_loss)
+
+[CUSTOM] Correlation matrix:
+         pearson_r(token_A_returns, token_B_returns) for all pairs
+
+[CUSTOM] Portfolio health score (5-factor):
+         sharpe(30%) + diversification(25%) + momentum(20%)
+         + stablecoin_hedge(15%) + pnl(10%)
+    │
+    ▼
+Score /100 + ranked tokens + correlation heatmap + 3 action items
+```
+**Custom logic:** Full quant finance stack built from kline data — Sharpe, RSI, Pearson correlation, 5-factor portfolio health score.
 
 **Trigger prompts:**
 ```
@@ -446,6 +611,29 @@ Step 6 — 3 data-driven actions
 ### okx-token-screener
 
 Smart money + technical indicator scanner. Finds the highest-opportunity tokens on any chain by combining OKX DEX Signal intelligence with RSI and volume data.
+
+**Architecture:**
+```
+User prompt (chain + preset: oversold/smart-money/volume-spike/etc.)
+    │
+    ├─ okx-dex-signal   → signal list (smart money, whale buys)
+    ├─ okx-dex-signal   → tracker activities (recent wallet moves)
+    │
+    ▼
+[CUSTOM] Opportunity scorer per token:
+         smart_money_consensus (35%) — how many SM wallets bought
+         RSI_oversold           (25%) — lower RSI = higher score
+         volume_spike           (20%) — vol vs 7d avg
+         price_momentum         (10%) — 24h / 7d direction
+         safety_score           (10%) — from security check
+    │
+    ├─ okx-security     → filter honeypots + critical risk
+    ├─ okx-dex-market   → RSI + volume for each token
+    │
+    ▼
+Ranked table: token | RSI | vol spike | SM wallets | score | buy?
+```
+**Custom logic:** 5-factor opportunity score combining OKX signal intelligence with classic technical indicators, 6 preset scan modes.
 
 **Trigger prompts:**
 ```
@@ -492,6 +680,35 @@ Step 5 — Ranked results
 ### okx-copy-trader
 
 Mirror the trades of smart money, whales, KOLs, top leaderboard traders, or any specific wallet — proportionally and automatically using OKX DEX Signal.
+
+**Architecture:**
+```
+User prompt (mode: smart_money / kol / leaderboard / specific wallet)
+    │
+    ├─ okx-dex-signal     → signal list + tracker activities
+    ├─ okx-dex-signal     → leaderboard list (sorted by ROI)
+    │
+    ▼
+[CUSTOM] Target resolver — 4 modes:
+         smart_money  → top signal wallets by consensus
+         kol          → verified KOL activity feed
+         leaderboard  → #1 by 7d ROI auto-selected
+         specific     → user-provided wallet address
+
+[CUSTOM] Proportional sizing:
+         their_trade_pct = trade_size / their_portfolio
+         your_copy = their_trade_pct × your_portfolio × copy_budget%
+
+[CUSTOM] Auto-exit engine (CronCreate 30min):
+         if target_wallet sells > 30% → auto-sell your position
+    │
+    ├─ okx-security  → block honeypots before copying
+    └─ okx-dex-swap  → execute mirror trade
+    │
+    ▼
+Copy confirmation + CronCreate exit watcher
+```
+**Custom logic:** 4-mode target resolver, proportional position sizing, smart money exit detection + auto-sell trigger.
 
 **Trigger prompts:**
 ```
@@ -545,6 +762,33 @@ Step 6 — Auto-exit when they exit (CronCreate every 30 min)
 
 Volatility-adjusted DCA. Buys more when RSI is oversold (dips), less when overbought — automated via CronCreate.
 
+**Architecture:**
+```
+User prompt (token + base_amount + frequency)
+    │
+    ├─ okx-dex-market  → 30d kline for RSI + price vs avg
+    ├─ okx-agentic-wallet → USDC balance check
+    │
+    ▼
+[CUSTOM] RSI multiplier table:
+         RSI < 25  → 2.0× (extreme oversold, buy double)
+         RSI < 35  → 1.5× (oversold)
+         RSI < 50  → 1.2× (below midline)
+         RSI < 65  → 1.0× (neutral, base amount)
+         RSI > 75  → 0.5× (overbought, buy half)
+
+[CUSTOM] Cost basis tracker:
+         avg_cost = total_spent / total_tokens_bought
+    │
+    └─ okx-dex-swap → execute sized buy
+    │
+    CronCreate (weekly/daily/monthly)
+    │
+    ▼
+DCA report: RSI | multiplier | amount | avg cost basis | total accumulated
+```
+**Custom logic:** RSI multiplier sizing table, below-average price bonus (+0.2×), rolling cost basis tracker across all DCA cycles.
+
 **Trigger prompts:**
 ```
 "DCA $50 into ETH every week"
@@ -580,6 +824,36 @@ Step 4 — CronCreate weekly
 ### okx-risk-guard
 
 Automated stop-loss and take-profit. Monitors every 30 minutes via CronCreate, auto-swaps when your trigger price is hit.
+
+**Architecture:**
+```
+User prompt (token + stop price / take-profit / trailing %)
+    │
+    ├─ okx-dex-market  → current price + 30d kline + volatility
+    │
+    ▼
+[CUSTOM] Guard types:
+         fixed stop-loss      → sell all if price < X
+         fixed take-profit    → sell % if price > Y
+         trailing stop        → sell if drops Z% from peak
+         flash crash guard    → sell if drops W% in 4h
+         portfolio circuit    → sell all tokens if portfolio drops V%
+
+[CUSTOM] Probability estimator:
+         P(stop_hit) = based on historical vol × days_horizon
+
+CronCreate every 30 min:
+    ├─ okx-dex-market  → price check
+    │
+    ▼
+[CUSTOM] Trigger evaluator → which guards are hit?
+    │
+    └─ okx-dex-swap → auto-execute sell to USDC
+    │
+    ▼
+Alert: guard type | trigger price | amount sold | tx hash | next steps
+```
+**Custom logic:** 5 guard types, probability of trigger calculator, trailing stop peak tracker, portfolio-level circuit breaker.
 
 **Trigger prompts:**
 ```
@@ -620,6 +894,35 @@ Step 4 — On trigger
 ### okx-crosschain-swap
 
 Bridge and swap tokens across any chain using LI.FI routing. Finds the best bridge, shows full quote, executes in one tx, and tracks until confirmed on destination.
+
+**Architecture:**
+```
+User prompt (token + from_chain + to_chain + amount)
+    │
+    ├─ LI.FI /v1/chains  → verify both chains supported
+    ├─ LI.FI /v1/tokens  → resolve token addresses per chain
+    ├─ okx-agentic-wallet → balance check on source chain
+    │
+    ▼
+[CUSTOM] Quote fetcher + best route picker:
+         GET /v1/quote → bridge options ranked by output
+         show: send | receive | bridge | fee | time
+    │
+    ▼ (user confirms)
+    │
+[CUSTOM] Approve → Bridge flow:
+         if ERC-20: build approve calldata (0x095ea7b3)
+         onchainos wallet contract-call → approve tx
+         onchainos wallet contract-call → bridge tx (transactionRequest.data)
+    │
+[CUSTOM] Status poller:
+         GET /v1/status every 15s
+         PENDING → PENDING → DONE ✅
+    │
+    ▼
+✅ Sent | ✅ Received | Source tx link | Dest tx link | LI.FI scan link
+```
+**Custom logic:** ERC-20 approve calldata builder, LI.FI route executor via onchainos contract-call, status poller with explorer links for both chains. **Live tested: Base → Arbitrum 0.032 USDC in <2s via Eco bridge.**
 
 **Trigger prompts:**
 ```
@@ -685,6 +988,41 @@ Step 7 — Confirm arrival
 ### okx-v4-rebalancer
 
 Atomic Liquidity Management for Uniswap V4. Executes a complete burn → swap → mint rebalance in **one single transaction** using V4 PoolManager flash accounting — 3× cheaper than V3-style rebalancing, zero price exposure between steps.
+
+**Architecture:**
+```
+User prompt (V4 position out of range / rebalance)
+    │
+    ├─ okx-defi-portfolio  → fetch V4 LP position (tokenId, range, liquidity)
+    ├─ okx-dex-market      → current price + 30d kline
+    │
+    ▼
+[CUSTOM] New range calculator:
+         weekly_vol = daily_std_dev × √7
+         new_range = price × (1 ± vol × 1.5)
+         tick_lower, tick_upper from price range
+
+[CUSTOM] Atomic calldata builder (via viem-integration + configurator):
+         poolKey = {currency0, currency1, fee, tickSpacing, hooks}
+         Actions array = [
+           DECREASE_LIQUIDITY,   ← burn old position
+           COLLECT,              ← collect tokens into PoolManager
+           SWAP_EXACT_IN_SINGLE, ← rebalance ratio (flash accounting)
+           MINT_POSITION,        ← create new position
+           SETTLE_ALL            ← net settle, only delta leaves
+         ]
+         → encoded as PositionManager multicall
+
+    ├─ Uniswap AI: v4-security-foundations → hook safety check
+    ├─ Uniswap AI: swap-planner  → optimal swap route inside V4
+    │
+    ▼
+onchainos wallet contract-call → single tx execution
+    │
+    ▼
+BURNED old | SWAPPED ratio | MINTED new range | gas saved vs V3
+```
+**Custom logic:** Full V4 flash accounting action sequence builder, atomic 5-step multicall encoder, V3 vs V4 gas comparison. Uses all 5 Uniswap AI skills in one flow.
 
 **Trigger prompts:**
 ```
@@ -752,6 +1090,42 @@ Step 7 — CronCreate 2h monitor on new range
 ### okx-meme-scout
 
 Scans pump.fun and Solana launchpads every 30 minutes, filters hundreds of new launches down to safe buys using dev reputation, bundle detection, bonding curve analysis, and holder checks — then executes via Solana wallet.
+
+**Architecture:**
+```
+User prompt (scan / check token / buy)
+    │
+    ├─ okx-dex-trenches  → memepump tokens (all new launches)
+    │
+    ▼
+[CUSTOM] 4-stage filter pipeline (fail-fast, stops at first red flag):
+
+  Stage 1 — Bonding curve gate:
+            curve < 5%  → skip (dead)
+            curve > 90% → skip (too late, devs already rich)
+
+  Stage 2 — Dev reputation check:
+            okx-dex-trenches: token-dev-info
+            rugCount > 0 → ❌ BLOCKED
+
+  Stage 3 — Bundle/sniper check:
+            okx-dex-trenches: token-bundle-info
+            bundleHoldingPct > 20% → ❌ BLOCKED
+
+  Stage 4 — Holder + security check:
+            okx-dex-trenches: token-details → holderCount < 30 → skip
+            okx-security: token-detection → honeypot → ❌ BLOCKED
+
+[CUSTOM] Score formula (0–100):
+         curve_sweet_spot (40) + clean_dev (30) + no_bundles (20) + holders (10)
+    │
+    ▼
+Ranked safe launches + optional:
+    └─ okx-dex-swap → buy on Solana (--chain solana)
+    │
+    Optional CronCreate every 30min → auto-alert score 85+
+```
+**Custom logic:** 4-stage fail-fast rug filter, bonding curve sweet spot (20-70%), bundle holding percentage check, composite safety score/100.
 
 **Trigger prompts:**
 ```
