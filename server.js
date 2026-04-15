@@ -97,8 +97,9 @@ app.get("/shared/:file", (req, res) => {
 app.get("/health", (req, res) => res.json({ status: "ok", uptime: process.uptime() }));
 
 const PORT = process.env.PORT || 3000;
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 app.listen(PORT, () => {
   console.log(`\n🚀 XLayer Skills Registry running on port ${PORT}`);
-  console.log(`   Skills: http://localhost:${PORT}/skills`);
-  console.log(`   Example: http://localhost:${PORT}/skills/okx-crosschain-swap\n`);
+  console.log(`   Skills: ${BASE_URL}/skills`);
+  console.log(`   Example: ${BASE_URL}/skills/okx-crosschain-swap\n`);
 });
