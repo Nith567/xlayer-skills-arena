@@ -72,22 +72,22 @@ chmod +x install.sh && ./install.sh   # installs to ~/.claude/skills/
 
 > All 14 skills below are **custom-built** on top of the OKX Onchain OS base modules. Each SKILL.md contains original logic — scoring formulas, financial algorithms, multi-step orchestration — not just wrappers around CLI commands.
 
-| Skill | What We Built (Custom Logic) | Prize Target |
-|---|---|---|
-| [`okx-auto-rebalance`](#okx-auto-rebalance) | NL % parser → multi-hop swap sequencer, slippage-aware routing | Skills Arena |
-| [`okx-yield-optimizer`](#okx-yield-optimizer) | APY scorer across DeFi Llama 17k pools: risk-adjusted rank, gas payback calc | Skills Arena |
-| [`okx-yield-compounder`](#okx-yield-compounder) | Reward→reinvest loop + gas efficiency gate (skip if gas > 10% of reward) | Skills Arena |
-| [`okx-liquidation-guard`](#okx-liquidation-guard) | HF formula + 3-tier alert system (warn/repay/emergency) via CronCreate | Skills Arena |
-| [`okx-uniswap-strategy`](#okx-uniswap-strategy) | 30d volatility → optimal tick range + DexScreener pool scoring | Uniswap + Data Analyst |
-| [`okx-lp-position-manager`](#okx-lp-position-manager) | Concentrated liquidity IL formula + range drift detection + auto-rebalance | Uniswap |
-| [`okx-onchain-analyst`](#okx-onchain-analyst) | Sharpe ratio, RSI, correlation matrix, health score (5-factor weighted formula) | Data Analyst |
-| [`okx-token-screener`](#okx-token-screener) | Opportunity score: SM consensus(35%) + RSI(25%) + vol spike(20%) + momentum(10%) + safety(10%) | Data Analyst |
-| [`okx-copy-trader`](#okx-copy-trader) | 4-mode copy engine: proportional sizing + auto-exit on smart money 30% sell | Most Innovative |
-| [`okx-smart-dca`](#okx-smart-dca) | RSI multiplier table (RSI<25 → 2×, RSI>75 → 0.5×) + cost basis tracker | Most Innovative |
-| [`okx-risk-guard`](#okx-risk-guard) | Trailing stop + flash crash guard + portfolio-level circuit breaker, 30min cron | Most Innovative |
-| [`okx-meme-scout`](#okx-meme-scout) | 4-stage rug filter: bonding curve + dev history + bundle pct + holder count → score/100 | Most Innovative |
-| [`okx-v4-rebalancer`](#okx-v4-rebalancer) | V4 flash accounting: atomic DECREASE→COLLECT→SWAP→MINT in 1 tx, 3× cheaper than V3 | **Uniswap Prize** |
-| [`okx-crosschain-swap`](#okx-crosschain-swap) | LI.FI routing (no API key) + full approve→bridge→poll status flow with explorer links | Skills Arena |
+| Skill | What We Built (Custom Logic) |
+|---|---|
+| [`okx-auto-rebalance`](#okx-auto-rebalance) | NL % parser → multi-hop swap sequencer, slippage-aware routing |
+| [`okx-yield-optimizer`](#okx-yield-optimizer) | APY scorer across DeFi Llama 17k pools: risk-adjusted rank, gas payback calc |
+| [`okx-yield-compounder`](#okx-yield-compounder) | Reward→reinvest loop + gas efficiency gate (skip if gas > 10% of reward) |
+| [`okx-liquidation-guard`](#okx-liquidation-guard) | HF formula + 3-tier alert system (warn/repay/emergency) via CronCreate |
+| [`okx-uniswap-strategy`](#okx-uniswap-strategy) | 30d volatility → optimal tick range + DexScreener pool scoring |
+| [`okx-lp-position-manager`](#okx-lp-position-manager) | Concentrated liquidity IL formula + range drift detection + auto-rebalance |
+| [`okx-onchain-analyst`](#okx-onchain-analyst) | Sharpe ratio, RSI, correlation matrix, health score (5-factor weighted formula) |
+| [`okx-token-screener`](#okx-token-screener) | Opportunity score: SM consensus(35%) + RSI(25%) + vol spike(20%) + momentum(10%) + safety(10%) |
+| [`okx-copy-trader`](#okx-copy-trader) | 4-mode copy engine: proportional sizing + auto-exit on smart money 30% sell |
+| [`okx-smart-dca`](#okx-smart-dca) | RSI multiplier table (RSI<25 → 2×, RSI>75 → 0.5×) + cost basis tracker |
+| [`okx-risk-guard`](#okx-risk-guard) | Trailing stop + flash crash guard + portfolio-level circuit breaker, 30min cron |
+| [`okx-meme-scout`](#okx-meme-scout) | 4-stage rug filter: bonding curve + dev history + bundle pct + holder count → score/100 |
+| [`okx-v4-rebalancer`](#okx-v4-rebalancer) | V4 flash accounting: atomic DECREASE→COLLECT→SWAP→MINT in 1 tx, 3× cheaper than V3 |
+| [`okx-crosschain-swap`](#okx-crosschain-swap) | LI.FI routing (no API key) + full approve→bridge→poll status flow with explorer links |
 
 ---
 
